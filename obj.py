@@ -7,8 +7,14 @@ print('---------------------------')
 # POP
 print('1. Pop')
 obj = {'b': 1}
-print('- Create obj:', obj)
-print('- Running "obj.pop("a")" with "try/except", return None')
+print('> Create obj:', obj)
+print('> Running "obj.pop("a")" with "try/except", return None')
+print("""> Example:
+\ttry:
+\t    a = obj.pop('a')
+\texcept KeyError:
+\t    a = None
+""")
 
 # pop -> this uses try/except block and assign None to the created variable
 try:
@@ -16,21 +22,25 @@ try:
 except KeyError:
     a = None
 
-print('- After obj:', obj)
-print('- Result:', a)
+print('> After obj:', obj)
+print('> Result:', a)
 print()
 
 # GET+POP
 print('1. Get+Pop')
 obj = {'b': 1}
-print('- Create obj:', obj)
-print('- Running "obj.pop("a") with obj.get("a")", return None')
+print('> Create obj:', obj)
+print('> Running "obj.pop("a") with obj.get("a")", return None')
+print("""> Example:
+\ttry:
+\t    a = obj.pop('a') if obj.get('a') else None
+""")
 
 # get pop -> this uses conditional and .get to assign None to the created variable
 a = obj.pop('a') if obj.get('a') else None
 
-print('- After obj:', obj)
-print('- Result:', a)
+print('> After obj:', obj)
+print('> Result:', a)
 print()
 
 # TESTS
@@ -91,10 +101,10 @@ def test_run(func, obj=None, number=1000, verbose=0, *args, **kwargs):
     if verbose == 1:
         print(number, 'it', func.__name__, end_time - start_time, 'sec')
     elif verbose >= 2:
-        print(f'Func: {func.__name__}', '| obj:', obj, '| args:', args, '| kwargs:', kwargs, '| res:', res,)
-        print(f'Iterations: {number}')
-        print(f'Time {round(end_time - start_time, 5)} sec')
-        print(f'It/sec: {round(number/(end_time - start_time), 5)}\n')
+        print(f'> Func: {func.__name__}', '| obj:', obj, '| args:', args, '| kwargs:', kwargs, '| res:', res,)
+        print(f'> Iterations: {number}')
+        print(f'> Time: {round(end_time - start_time, 5)} sec')
+        print(f'> It/sec: {round(number/(end_time - start_time), 5)}\n')
 
     return end_time - start_time
 
@@ -175,4 +185,17 @@ Func: get_pop_func | obj: {'a': 123} | args: () | kwargs: {} | res: 123
 Iterations: 10000000
 Time 2.61618 sec
 It/sec: 3822366.00065
+"""
+
+# RESTULS
+"""
+When don't obj contains the key to be popped:
+
+    Pop (try/except, None) - It/sec: 2419331
+    Get+Pop (get, None) - It/sec: 4761677 (1.96x)
+
+When obj contains the key to be popped:
+
+    Pop (try/except, 123) - It/sec: 4180299
+    Get+Pop (get, 123) - It/sec: 3822366 (0.86x)
 """
