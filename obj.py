@@ -8,7 +8,7 @@ print('---------------------------')
 print('1. Pop')
 obj = {'b': 1}
 print('- Create obj:', obj)
-print('- Running "obj.pop("a")" with "try/except", return "None"')
+print('- Running "obj.pop("a")" with "try/except", return None')
 
 # pop -> this uses try/except block and assign None to the created variable
 try:
@@ -24,7 +24,7 @@ print()
 print('1. Get+Pop')
 obj = {'b': 1}
 print('- Create obj:', obj)
-print('- Running "obj.pop("a") with obj.get("a")", return "None"')
+print('- Running "obj.pop("a") with obj.get("a")", return None')
 
 # get pop -> this uses conditional and .get to assign None to the created variable
 a = obj.pop('a') if obj.get('a') else None
@@ -137,13 +137,13 @@ if __name__ == '__main__':
 ---------------------------
 1. Pop
 - Create obj: {'b': 1}
-- Running "obj.pop("a")" with "try/except", return "None"
+- Running "obj.pop("a")" with "try/except", return None
 - After obj: {'b': 1}
 - Result: None
 
 1. Get+Pop
 - Create obj: {'b': 1}
-- Running "obj.pop("a") with obj.get("a")", return "None"
+- Running "obj.pop("a") with obj.get("a")", return None
 - After obj: {'b': 1}
 - Result: None
 
