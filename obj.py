@@ -189,13 +189,13 @@ It/sec: 3822366.00065
 
 # RESTULS
 """
-When don't obj contains the key to be popped:
+When obj doesn't contains the key to be popped:
 
-    Pop (try/except, None) - It/sec: 2419331
-    Get+Pop (get, None) - It/sec: 4761677 (1.96x)
+    Pop (try/except, None) - It/sec: ~2419331
+    Get+Pop (get, None) - It/sec: ~4761677 (1.96x)
 
 When obj contains the key to be popped:
 
-    Pop (try/except, 123) - It/sec: 4180299
-    Get+Pop (get, 123) - It/sec: 3822366 (0.86x)
+    Pop (try/except, 123) - It/sec: ~4180299
+    Get+Pop (get, 123) - It/sec: ~3822366 (0.86x)
 """
