@@ -130,3 +130,49 @@ if __name__ == '__main__':
     print('Get+Pop (get, 123)')
     obj = {'a': 123}
     test_run(get_pop_func, obj=obj, number=ITERERATIONS, verbose=VERBOSE)
+
+# OUTPUT
+"""
+--------- CONTEXT ---------
+---------------------------
+1. Pop
+- Create obj: {'b': 1}
+- Running "obj.pop("a")" with "try/except", return "None"
+- After obj: {'b': 1}
+- Result: None
+
+1. Get+Pop
+- Create obj: {'b': 1}
+- Running "obj.pop("a") with obj.get("a")", return "None"
+- After obj: {'b': 1}
+- Result: None
+
+--------- RUNNING ---------
+---------------------------
+- Iterations: 10000000
+---------------------------
+
+Pop (try/except, None)
+Func: pop_func | obj: {'b': 123} | args: () | kwargs: {} | res: None
+Iterations: 10000000
+Time 3.83992 sec
+It/sec: 2604222.8318
+
+Get+Pop (get, None)
+Func: get_pop_func | obj: {'b': 123} | args: () | kwargs: {} | res: None
+Iterations: 10000000
+Time 2.07483 sec
+It/sec: 4819677.3831
+
+Pop (try/except, 123)
+Func: pop_func | obj: {'a': 123} | args: () | kwargs: {} | res: 123
+Iterations: 10000000
+Time 2.21639 sec
+It/sec: 4511842.0277
+
+Get+Pop (get, 123)
+Func: get_pop_func | obj: {'a': 123} | args: () | kwargs: {} | res: 123
+Iterations: 10000000
+Time 2.61618 sec
+It/sec: 3822366.00065
+"""
