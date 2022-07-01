@@ -44,9 +44,7 @@ print('> Result:', a)
 print()
 
 # TESTS
-import timeit
 from time import time
-from functools import partial
 
 
 def pop_func(obj):
