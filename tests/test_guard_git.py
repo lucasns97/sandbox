@@ -230,6 +230,22 @@ class TestCopilotSandboxReview(unittest.TestCase):
         self.assertFalse(blocked("git switch -c claude/z && git commit -m x", "main", "main"))
         self.assertFalse(blocked("git switch claude/x && git commit -m x"))
 
+    def test_commit_after_other_tree_changes_is_blocked(self):
+        for cmd in ["git checkout claude/y -- . && git commit -m x", "git reset --hard claude/y && git commit -m x",
+                    "git pull && git commit -m x", "git stash pop && git commit -m x",
+                    "git restore --source claude/y . && git commit -m x", "git cherry-pick abc && git commit"]:
+            with self.subTest(cmd=cmd):
+                self.assertTrue(blocked(cmd))
+        for cmd in ["git checkout -- f.py && git commit -m x", "git checkout @{-1} -- f.py",
+                    "git switch -c claude/n HEAD && git commit -m x"]:
+            with self.subTest(cmd=cmd):
+                self.assertFalse(blocked(cmd))
+        # Documented limitation: plain file edits before a commit in the same call aren't seen.
+        self.assertEqual(guard.decide("sed -i s/a/b/ f && git commit -m x", "claude/x", "claude/x", BRANCHES), (None, True))
+
+    def test_a_comment_after_and_continues_the_chain(self):
+        self.assertFalse(blocked("git switch -c claude/n && # note\ngit commit -m x", "main", "main"))
+
 
 class TestHookProcess(unittest.TestCase):
     """Run the hook as Claude Code does, against a real repo with no remote-tracking refs."""

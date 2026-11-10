@@ -11,7 +11,6 @@ on:
 permissions:
   contents: read
 
-# On PRs, a new push cancels the older run. On main, every commit gets its own result.
 concurrency:
   # PRs share a group per branch so a new push cancels the old run; every main push gets its own
   # group (run_id), so a queued run can't replace a merge commit's pending one.

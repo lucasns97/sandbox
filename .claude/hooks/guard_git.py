@@ -32,12 +32,15 @@ GIT_WRITE = re.compile(r"\b(commit|push)\b")
 # Heredocs with a quoted delimiter (<<'EOF') are literal text. Unquoted ones expand $(...), so they stay visible.
 QUOTED_HEREDOC = re.compile(r"<<-?[ \t]*(['\"])([A-Za-z_][A-Za-z0-9_]*)\1([^\n]*)\n.*?^[ \t]*\2[ \t]*$", re.S | re.M)
 UNQUOTED_HEREDOC = re.compile(r"<<-?[ \t]*[A-Za-z_\\]")
-CONTINUATION = re.compile(r"(&&|\|\||\|)[ \t]*\n|\\\n")
+CONTINUATION = re.compile(r"(&&|\|\||\|)[ \t]*(?:#[^\n]*)?\n|\\\n")  # bash continues these across a comment too
 SPLIT_STRING = re.compile(r"^(-S|--split-string)(=|$)")
 REDIRECT_AT = re.compile(r"\d*(&>>?|>>?&?|<(?![<(]))")  # an output/input redirection operator (not <<, not <()
 INTERPRETERS = {"python", "python3", "node", "perl", "ruby", "php", "deno", "bun"}
 ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 PREVIOUS_BRANCH = re.compile(r"^(-|@\{-\d+\})$")  # git switch -, git checkout @{-1}
+# git subcommands that change the working tree or index to other content. verify.sh ran before the call,
+# so a commit after one of them in the same call would commit files verify.sh never checked.
+TREE_CHANGERS = {"pull", "merge", "rebase", "reset", "restore", "stash", "cherry-pick", "revert", "am", "apply"}
 UNREADABLE = ("write the git commit or push as a plain command (no $(...), backticks, bash -c, eval, sudo or xargs) "
               "so the guard can check it")
 
@@ -288,7 +291,13 @@ def decide(cmd, branch, upstream=None, branches=(), upstreams=None):
         if not call:
             continue
         sub, args = call
-        if sub in ("switch", "checkout") and any(PREVIOUS_BRANCH.match(a) for a in args):
+        if sub in TREE_CHANGERS:
+            moved = True
+            continue
+        if sub == "checkout" and "--" in args and any(not a.startswith("-") for a in args[:args.index("--")]):
+            moved = True  # `checkout <tree-ish> -- <paths>` copies another commit's files in
+            continue
+        if sub in ("switch", "checkout") and not (sub == "checkout" and "--" in args) and any(PREVIOUS_BRANCH.match(a) for a in args):
             # "the previous branch" isn't known from the command alone.
             branch, upstream, switched, previous, moved = None, UNKNOWN, True, True, True
             continue
@@ -300,7 +309,7 @@ def decide(cmd, branch, upstream=None, branches=(), upstreams=None):
                 resets = any(a in ("-C", "-B") for a in args)
                 # A new branch has no upstream unless it tracks one, starts from a remote branch, or reuses a name.
                 upstream = UNKNOWN if (tracks or resets or start) else None
-                moved = moved or bool(start)
+                moved = moved or any(a not in ("HEAD", "@") for a in start)
             elif sub == "switch" or "--" not in args:  # `checkout -- <paths>` restores files instead
                 names = [a for a in args if a != "--" and not a.startswith("-")]
                 if len(names) == 1 and (sub == "switch" or names[0] in branches or names[0] == MAIN):
@@ -316,7 +325,8 @@ def decide(cmd, branch, upstream=None, branches=(), upstreams=None):
             if previous:
                 return "switch to the branch by name (not - or @{-1}) so the guard can check it", False
             if moved:
-                return "switch branches in one command and commit in the next, so verify.sh checks the files you're committing", False
+                return ("verify.sh ran before this command, so it didn't check the files this commit would include. "
+                        "Run the switch, checkout, reset, pull or similar first, then commit in a separate command"), False
             if branch is None:
                 return "you're on a detached HEAD. Switch to a claude/* branch first: git switch -c claude/<topic>", False
             if branch == MAIN:
