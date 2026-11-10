@@ -204,6 +204,33 @@ class TestCopilotFifthReview(unittest.TestCase):
         self.assertEqual(guard.decide("git commit -m 'x' > '$(git push)'", "claude/x", "claude/x", BRANCHES), (None, True))
 
 
+class TestCopilotSandboxReview(unittest.TestCase):
+    """Found by Copilot on lucasns97/sandbox#1, where the kit was installed."""
+
+    def test_a_comment_does_not_hide_the_next_line(self):
+        for cmd in ["git status # note\ngit commit -m x", "echo hi # x\ngit push origin main", "# only a comment\ngit commit -m x"]:
+            with self.subTest(cmd=cmd):
+                self.assertTrue(blocked(cmd, "main", "main"))
+        self.assertFalse(blocked("git add -A # stage\ngit commit -m x"))
+
+    def test_switching_to_the_previous_branch_is_unknown(self):
+        for cmd in ["git switch - && git commit -m x", "git checkout - && git commit -m x",
+                    "git checkout @{-1} && git commit -m x", "git switch - && git push"]:
+            with self.subTest(cmd=cmd):
+                self.assertTrue(blocked(cmd))
+        self.assertFalse(blocked("git switch - && git push -u origin claude/x"))
+
+    def test_commit_after_switching_to_other_files_is_blocked(self):
+        # verify.sh runs once, before the call, so it would have checked the old branch's files.
+        for cmd in ["git switch claude/y && git commit -m x", "git checkout claude/y && git commit -m x",
+                    "git switch -c claude/z origin/claude/y && git commit -m x"]:
+            with self.subTest(cmd=cmd):
+                self.assertTrue(blocked(cmd))
+        # A new branch from the current commit has the same files, so verify still applies.
+        self.assertFalse(blocked("git switch -c claude/z && git commit -m x", "main", "main"))
+        self.assertFalse(blocked("git switch claude/x && git commit -m x"))
+
+
 class TestHookProcess(unittest.TestCase):
     """Run the hook as Claude Code does, against a real repo with no remote-tracking refs."""
 

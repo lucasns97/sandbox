@@ -37,6 +37,7 @@ SPLIT_STRING = re.compile(r"^(-S|--split-string)(=|$)")
 REDIRECT_AT = re.compile(r"\d*(&>>?|>>?&?|<(?![<(]))")  # an output/input redirection operator (not <<, not <()
 INTERPRETERS = {"python", "python3", "node", "perl", "ruby", "php", "deno", "bun"}
 ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+PREVIOUS_BRANCH = re.compile(r"^(-|@\{-\d+\})$")  # git switch -, git checkout @{-1}
 UNREADABLE = ("write the git commit or push as a plain command (no $(...), backticks, bash -c, eval, sudo or xargs) "
               "so the guard can check it")
 
@@ -139,7 +140,9 @@ def unquoted(cmd):
 
 def segments(cmd):
     """Split a shell command into (operator_before, words, negated) triples; comments dropped, keywords stripped."""
-    lexer = shlex.shlex(cmd.replace("\n", " ; "), posix=True, punctuation_chars=";&|()")
+    # Each newline separates commands. Keep the newline itself so a # comment ends there instead of
+    # swallowing the lines after it, and add a ; on its own line as the separator token.
+    lexer = shlex.shlex(cmd.replace("\n", "\n;\n"), posix=True, punctuation_chars=";&|()")
     lexer.whitespace_split = True
     lexer.commenters = "#"
     out, seg, op, seg_negated = [], [], ";", False
@@ -273,7 +276,9 @@ def decide(cmd, branch, upstream=None, branches=(), upstreams=None):
     # After a branch switch, every later step must be joined by && (and the switch not negated);
     # otherwise the switch might have failed while later steps still run on the old branch.
     # A switch after || or | might not run at all, so it also leaves the branch unknown.
-    needs_verify, switched, unsure, conditional = False, False, False, False
+    # `moved` means a switch in this call may have changed the working tree, so verify.sh (which runs
+    # once, before the whole call) would have checked other files than the ones being committed.
+    needs_verify, switched, unsure, conditional, moved, previous = False, False, False, False, False, False
     for op, words, negated in segs:
         if switched and op != "&&":
             unsure = True
@@ -283,6 +288,10 @@ def decide(cmd, branch, upstream=None, branches=(), upstreams=None):
         if not call:
             continue
         sub, args = call
+        if sub in ("switch", "checkout") and any(PREVIOUS_BRANCH.match(a) for a in args):
+            # "the previous branch" isn't known from the command alone.
+            branch, upstream, switched, previous, moved = None, UNKNOWN, True, True, True
+            continue
         if sub in ("switch", "checkout"):
             new = next((args[i + 1] for i, a in enumerate(args[:-1]) if a in ("-c", "-C", "--create", "-b", "-B")), None)
             if new is not None:
@@ -291,17 +300,23 @@ def decide(cmd, branch, upstream=None, branches=(), upstreams=None):
                 resets = any(a in ("-C", "-B") for a in args)
                 # A new branch has no upstream unless it tracks one, starts from a remote branch, or reuses a name.
                 upstream = UNKNOWN if (tracks or resets or start) else None
+                moved = moved or bool(start)
             elif sub == "switch" or "--" not in args:  # `checkout -- <paths>` restores files instead
                 names = [a for a in args if a != "--" and not a.startswith("-")]
                 if len(names) == 1 and (sub == "switch" or names[0] in branches or names[0] == MAIN):
                     new = names[0]
                     upstream = UNKNOWN if upstreams is None else upstreams.get(new)
+                    moved = moved or new != branch
             if new is not None:
                 branch, switched = new, True
                 unsure = unsure or negated or conditional
         elif sub == "commit":
             if unsure:
                 return "chain the branch switch and the commit with && so the commit can't land on the wrong branch", False
+            if previous:
+                return "switch to the branch by name (not - or @{-1}) so the guard can check it", False
+            if moved:
+                return "switch branches in one command and commit in the next, so verify.sh checks the files you're committing", False
             if branch is None:
                 return "you're on a detached HEAD. Switch to a claude/* branch first: git switch -c claude/<topic>", False
             if branch == MAIN:

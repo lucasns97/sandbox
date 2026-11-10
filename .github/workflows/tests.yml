@@ -13,7 +13,9 @@ permissions:
 
 # On PRs, a new push cancels the older run. On main, every commit gets its own result.
 concurrency:
-  group: tests-${{ github.ref }}
+  # PRs share a group per branch so a new push cancels the old run; every main push gets its own
+  # group (run_id), so a queued run can't replace a merge commit's pending one.
+  group: tests-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
