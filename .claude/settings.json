@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard_git.py",
+            "timeout": 120,
+            "statusMessage": "Checking git rules"
+          }
+        ]
+      }
+    ]
+  }
+}
