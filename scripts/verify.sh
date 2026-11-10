@@ -3,11 +3,12 @@
 # runs it before each commit and CI runs it on every PR, so keep it under about a minute.
 # Exits non-zero on any failure.
 set -u
+export PYTHONDONTWRITEBYTECODE=1
 cd "$(dirname "$0")/.."
 status=0
 
-echo "== Git guard tests =="
-python3 -m unittest discover -s tests -p 'test_guard_git.py' || status=1
+echo "== Unit tests (includes the git guard's) =="
+python3 -m unittest discover -s tests -p 'test_*.py' || status=1
 
 echo "== Experiment scripts compile =="
 # Byte-compile only; running the benchmarks takes too long for a per-commit check.

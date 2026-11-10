@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Sandbox for small Python experiments. Today it holds one: `pop_from_obj_test.py`, a micro-benchmark comparing `dict.pop` inside `try/except KeyError` against `dict.pop(k) if dict.get(k) else None`, with its recorded output and results at the bottom of the file.
+Sandbox for small Python experiments. Today it holds one: `pop_from_obj_test.py`, a micro-benchmark comparing `dict.pop` inside `try/except KeyError` against `dict.pop(k) if dict.get(k) else None`, with recorded output and results at the bottom of the file. Those are from an earlier run: the output block predates the current print format and doesn't match the results block, and neither records the Python version or machine.
 
 ## Commands
 
@@ -8,7 +8,7 @@ Sandbox for small Python experiments. Today it holds one: `pop_from_obj_test.py`
 ./scripts/verify.sh               # every local check; the commit hook and CI both run it
 ```
 ```sh
-python3 pop_from_obj_test.py      # run the pop benchmark (10M iterations per case, about 10 s)
+python3 pop_from_obj_test.py      # run the pop benchmark (4 cases × 10M iterations; about 10–15 s and a few GB of RAM, mostly building the dict copies)
 python3 -m unittest discover -s tests -p 'test_*.py'   # unit tests (today: the git guard's)
 ```
 No dependencies beyond the Python 3 standard library.
@@ -38,9 +38,9 @@ Agent notes:
 
 ## Conventions
 
-- **One experiment per top-level script,** named for what it measures, with its recorded output and conclusions in a docstring at the end of the file.
-- **Benchmark numbers come from real runs.** Re-run the script to update them; never hand-edit. Note the iteration count, and say "likely" for unproven explanations.
-- **Experiment scripts must not be named `test_*.py`,** or `unittest discover` would collect and run them (`pop_from_obj_test.py` is safe: it doesn't start with `test_`).
+- **One experiment per top-level script,** named for what it measures, with its recorded output and conclusions in string blocks at the end of the file.
+- **Benchmark numbers come from real runs.** Re-run the script to update them; never hand-edit. Note the iteration count and Python version, and say "likely" for unproven explanations.
+- **Experiment scripts must not match `test_*.py`,** or `unittest discover` (the runner verify.sh uses) would collect them. Don't run pytest at the repo root: its default also collects `*_test.py`, which includes `pop_from_obj_test.py` and its `test_run` helper.
 - **Keep `verify.sh` fast:** it only byte-compiles experiment scripts, never runs the benchmarks.
 
 - **Claims must be honest.** Docs and UI say what the code actually does; unproven explanations say "likely".
