@@ -1,0 +1,37 @@
+name: Tests
+
+# The shipper agent waits for a workflow named "Tests"; keep the name.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # PRs share a group per branch so a new push cancels the old run; every main push gets its own
+  # group (run_id), so a queued run can't replace a merge commit's pending one.
+  group: tests-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  verify:
+    name: verify.sh
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      # Standard library only: no dependencies to install.
+
+      - name: Run every check
+        run: ./scripts/verify.sh
